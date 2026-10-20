@@ -1,0 +1,28 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Распаковать проект
+        run: |
+          set -e
+          ZIP=$(ls *.zip | head -1)
+          mkdir -p work && unzip -q "$ZIP" -d work
+          ROOT=$(dirname "$(find work -name gradlew | head -1)")
+          echo "ROOT=$ROOT" >> $GITHUB_ENV
+      - name: Сборка
+        run: cd "$ROOT" && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: friday-apk
+          path: ${{ env.ROOT }}/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
